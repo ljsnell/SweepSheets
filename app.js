@@ -697,7 +697,7 @@ function splitRow(row) {
 // ============================================================
 
 const EXAMPLE_CSV = `Name,Number,Position,Status,Line,PP,PK,Notes
-Jake Broom,7,Forward,Active,1,true,false,Captain
+Jake Broom,7,Center,Active,1,true,false,Captain
 Sara Sweep,12,Defense,Active,1,true,true,
 Mike Ice,3,Goalie,Active,1,false,false,
 Tyler Frost,22,Forward,Active,2,false,true,
