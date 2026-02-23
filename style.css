@@ -214,8 +214,6 @@ input, select, textarea { font-family: inherit; }
 .tab-bar {
   background: var(--c-primary-h);
   display: flex;
-  max-width: 1200px;
-  margin: 0 auto;
   padding: 0 1.25rem;
 }
 .tab-btn {
@@ -239,8 +237,6 @@ input, select, textarea { font-family: inherit; }
    TAB CONTENT
    ============================================================ */
 .tab-content {
-  max-width: 1200px;
-  margin: 0 auto;
   padding: 1.25rem;
 }
 
@@ -320,7 +316,7 @@ input, select, textarea { font-family: inherit; }
 }
 .search-input {
   width: 100%;
-  padding: 0.45rem 0.75rem 0.45rem 2rem;
+  padding: 0.45rem 0.75rem;
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
   background: var(--c-surface);
@@ -867,6 +863,160 @@ input[type="checkbox"]:checked + .pk-chip {
   .form-row .form-group { margin-bottom: 0.875rem; }
   .special-units { grid-template-columns: 1fr; }
   .tab-content { padding: 0.875rem; }
+}
+
+/* ============================================================
+   DRAG AND DROP (Lines tab)
+   ============================================================ */
+.player-chip[draggable] {
+  cursor: grab;
+}
+.player-chip[draggable]:active {
+  cursor: grabbing;
+}
+.player-chip.dragging {
+  opacity: 0.35;
+  outline: 2px dashed var(--c-accent);
+  outline-offset: 1px;
+}
+
+/* Drop zone highlight — generic and per-line-color variants */
+.line-section.drag-over {
+  outline: 2px dashed var(--c-accent);
+  outline-offset: -3px;
+  background: rgba(59,114,242,.05);
+}
+.line-section.line-1.drag-over    { outline-color: var(--line1-fg); background: rgba(91,33,182,.05); }
+.line-section.line-2.drag-over    { outline-color: var(--line2-fg); background: rgba(21,94,117,.05); }
+.line-section.line-3.drag-over    { outline-color: var(--line3-fg); background: rgba(157,23,77,.05); }
+.line-section.line-bench.drag-over { outline-color: var(--bench-fg); background: rgba(71,85,105,.05); }
+
+/* ============================================================
+   IMPORT OPTIONS MODAL
+   ============================================================ */
+.import-filename {
+  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+  font-size: 0.8rem;
+  color: var(--c-text-muted);
+  background: var(--c-bg);
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--c-border);
+  margin-bottom: 1rem;
+  word-break: break-all;
+}
+.import-mode-label {
+  font-size: 0.875rem;
+  color: var(--c-text-2);
+  margin-bottom: 0.75rem;
+}
+.import-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.import-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border: 2px solid var(--c-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+.import-option:hover { border-color: var(--c-border-h); }
+.import-option:has(input:checked) {
+  border-color: var(--c-accent);
+  background: rgba(59,114,242,.05);
+}
+.replace-option:has(input:checked) {
+  border-color: var(--c-danger);
+  background: rgba(220,38,38,.04);
+}
+.import-option input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  flex-shrink: 0;
+  accent-color: var(--c-accent);
+  cursor: pointer;
+}
+.replace-option input[type="radio"] { accent-color: var(--c-danger); }
+.import-option-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.import-option-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--c-text);
+}
+.import-option-desc {
+  font-size: 0.775rem;
+  color: var(--c-text-muted);
+  line-height: 1.4;
+}
+
+/* ============================================================
+   CSV EXAMPLE MODAL
+   ============================================================ */
+.modal-csv { max-width: 620px; }
+
+.csv-intro {
+  font-size: 0.875rem;
+  color: var(--c-text-2);
+  margin-bottom: 0.875rem;
+  line-height: 1.5;
+}
+
+.csv-col-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin-bottom: 1rem;
+}
+.csv-col-table th {
+  text-align: left;
+  padding: 0.35rem 0.65rem;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--c-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.csv-col-table td {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--c-border);
+  vertical-align: top;
+  color: var(--c-text);
+}
+.csv-col-table em { color: var(--c-text-muted); }
+.csv-col-table code {
+  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+  font-size: 0.82em;
+  background: var(--c-bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--c-border);
+  white-space: nowrap;
+}
+
+.csv-pre {
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 0.875rem 1rem;
+  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+  font-size: 0.775rem;
+  line-height: 1.65;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--c-text);
+  margin: 0;
 }
 
 /* ============================================================

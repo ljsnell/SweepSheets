@@ -280,7 +280,7 @@ function renderLines() {
       </div>`;
 
     html += `
-      <div class="line-section ${cls}">
+      <div class="line-section ${cls}" data-line="${key}">
         <div class="line-title">${label}</div>
         ${players.length === 0
           ? '<p class="line-empty">No players assigned</p>'
@@ -316,12 +316,70 @@ function renderLines() {
     </div>`;
 
   el.innerHTML = html;
+  initLineDrag();
+}
+
+// ============================================================
+// DRAG AND DROP — LINES TAB
+// ============================================================
+
+function initLineDrag() {
+  const linesEl = document.getElementById('linesContent');
+  if (!linesEl) return;
+
+  let draggingId = null;
+
+  // Only chips inside the 4 line sections are drag sources (not special-unit summaries)
+  linesEl.querySelectorAll('.line-section[data-line] .player-chip[data-id]').forEach(chip => {
+    chip.addEventListener('dragstart', e => {
+      draggingId = chip.dataset.id;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', draggingId);
+      // Delay so the drag ghost renders at full opacity before we fade the source
+      requestAnimationFrame(() => chip.classList.add('dragging'));
+    });
+
+    chip.addEventListener('dragend', () => {
+      chip.classList.remove('dragging');
+      linesEl.querySelectorAll('.line-section.drag-over')
+        .forEach(s => s.classList.remove('drag-over'));
+      draggingId = null;
+    });
+  });
+
+  linesEl.querySelectorAll('.line-section[data-line]').forEach(section => {
+    section.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      section.classList.add('drag-over');
+    });
+
+    section.addEventListener('dragleave', e => {
+      // Only clear the highlight when leaving the section entirely, not when entering a child
+      if (!section.contains(e.relatedTarget)) {
+        section.classList.remove('drag-over');
+      }
+    });
+
+    section.addEventListener('drop', e => {
+      e.preventDefault();
+      section.classList.remove('drag-over');
+      const id = e.dataTransfer.getData('text/plain') || draggingId;
+      if (!id) return;
+      const targetLine = section.dataset.line;
+      const player = state.players.find(p => p.id === id);
+      if (player && player.line !== targetLine) {
+        updatePlayer(id, { line: targetLine });
+        // updatePlayer -> render -> renderLines -> initLineDrag() re-attaches all listeners
+      }
+    });
+  });
 }
 
 function chipHTML(p) {
   const cls = { Forward: 'chip-fwd', Defense: 'chip-def', Goalie: 'chip-goal' }[p.position] || '';
   return `
-    <div class="player-chip ${cls}">
+    <div class="player-chip ${cls}" draggable="true" data-id="${esc(p.id)}" title="Drag to move to a different line">
       <span class="chip-number">${p.number ? '#' + esc(p.number) : '&mdash;'}</span>
       <span class="chip-name">${esc(p.name)}</span>
       <span class="chip-badges">${ppBadge(p.pp)}${pkBadge(p.pk)}</span>
@@ -465,20 +523,42 @@ function csvEsc(val) {
 // CSV IMPORT
 // ============================================================
 
-function importCSV(file) {
+// Pending file held while the import-options modal is open
+let pendingImportFile = null;
+
+function openImportOptionsModal(file) {
+  pendingImportFile = file;
+  document.getElementById('importFilename').textContent = file.name;
+  // Always reset to "append" when opening
+  document.querySelector('input[name="importMode"][value="append"]').checked = true;
+  document.getElementById('importOptionsModal').classList.remove('hidden');
+}
+
+function closeImportOptionsModal() {
+  document.getElementById('importOptionsModal').classList.add('hidden');
+  pendingImportFile = null;
+}
+
+function importCSV(file, mode) {
   const reader = new FileReader();
   reader.onload = e => {
-    const result = parseAndImportCSV(e.target.result);
-    let msg = `Imported ${result.added} player${result.added !== 1 ? 's' : ''}.`;
+    const result = parseAndImportCSV(e.target.result, mode);
+    let msg = mode === 'replace'
+      ? `Roster replaced with ${result.added} player${result.added !== 1 ? 's' : ''}.`
+      : `${result.added} player${result.added !== 1 ? 's' : ''} added to roster.`;
     if (result.skipped > 0)   msg += `\n${result.skipped} row(s) skipped (missing name).`;
     if (result.errors.length) msg += `\n\nWarnings:\n${result.errors.join('\n')}`;
+    closeImportOptionsModal();
     alert(msg);
   };
-  reader.onerror = () => alert('Could not read the file. Please try again.');
+  reader.onerror = () => {
+    alert('Could not read the file. Please try again.');
+    closeImportOptionsModal();
+  };
   reader.readAsText(file);
 }
 
-function parseAndImportCSV(text) {
+function parseAndImportCSV(text, mode = 'append') {
   const lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return { added: 0, skipped: 0, errors: ['File has no data rows.'] };
 
@@ -488,8 +568,9 @@ function parseAndImportCSV(text) {
   const nameIdx = col('name');
   if (nameIdx === -1) return { added: 0, skipped: 0, errors: ['"Name" column not found. Check your CSV headers.'] };
 
-  let added = 0, skipped = 0;
+  let skipped = 0;
   const errors = [];
+  const toAdd  = [];
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -509,7 +590,9 @@ function parseAndImportCSV(text) {
     };
 
     try {
-      addPlayer({
+      toAdd.push({
+        id: genId(),
+        createdAt: Date.now(),
         name,
         number:   (cols[col('number')] ?? '').trim(),
         position: pick('position', ['Forward', 'Defense', 'Goalie'], 'Forward'),
@@ -519,13 +602,21 @@ function parseAndImportCSV(text) {
         pk:       boolCol('pk'),
         notes:    (cols[col('notes')] ?? '').trim(),
       });
-      added++;
     } catch (e) {
       errors.push(`Row ${i + 1}: ${e.message}`);
     }
   }
 
-  return { added, skipped, errors };
+  // Apply all rows in one shot — single saveData() + render()
+  if (mode === 'replace') {
+    state.players = toAdd;
+  } else {
+    state.players.push(...toAdd);
+  }
+  saveData();
+  render();
+
+  return { added: toAdd.length, skipped, errors };
 }
 
 function splitRow(row) {
@@ -544,6 +635,41 @@ function splitRow(row) {
   }
   result.push(cur);
   return result;
+}
+
+// ============================================================
+// MODAL — CSV EXAMPLE
+// ============================================================
+
+const EXAMPLE_CSV = `Name,Number,Position,Status,Line,PP,PK,Notes
+Jake Broom,7,Forward,Active,1,true,false,Captain
+Sara Sweep,12,Defense,Active,1,true,true,
+Mike Ice,3,Goalie,Active,1,false,false,
+Tyler Frost,22,Forward,Active,2,false,true,
+Jess Chill,9,Forward,Active,2,true,false,
+Ryan Rink,5,Defense,Active,2,false,true,
+Dana Puck,18,Forward,Active,3,false,false,
+Pat Glide,11,Defense,Active,3,false,false,
+Sam Slide,4,Goalie,Inactive,Bench,false,false,Backup goalie`;
+
+function openCsvExampleModal() {
+  document.getElementById('csvExampleModal').classList.remove('hidden');
+}
+
+function closeCsvExampleModal() {
+  document.getElementById('csvExampleModal').classList.add('hidden');
+}
+
+function downloadExampleCsv() {
+  const blob = new Blob([EXAMPLE_CSV], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'sweepsheets_example.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ============================================================
@@ -593,12 +719,29 @@ function init() {
   document.getElementById('addPlayerBtn').addEventListener('click', openAddModal);
   document.getElementById('emptyAddBtn').addEventListener('click', openAddModal);
   document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
+  document.getElementById('csvExampleBtn').addEventListener('click', openCsvExampleModal);
+  document.getElementById('csvExampleClose').addEventListener('click', closeCsvExampleModal);
+  document.getElementById('csvExampleCloseFtr').addEventListener('click', closeCsvExampleModal);
+  document.getElementById('downloadExampleBtn').addEventListener('click', downloadExampleCsv);
+  document.getElementById('csvExampleModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeCsvExampleModal();
+  });
   document.getElementById('importCsvBtn').addEventListener('click', () => {
     document.getElementById('csvFileInput').click();
   });
+  document.getElementById('importOptionsClose').addEventListener('click', closeImportOptionsModal);
+  document.getElementById('importOptionsCancelBtn').addEventListener('click', closeImportOptionsModal);
+  document.getElementById('importOptionsConfirmBtn').addEventListener('click', () => {
+    if (!pendingImportFile) { closeImportOptionsModal(); return; }
+    const mode = document.querySelector('input[name="importMode"]:checked')?.value || 'append';
+    importCSV(pendingImportFile, mode);
+  });
+  document.getElementById('importOptionsModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeImportOptionsModal();
+  });
   document.getElementById('csvFileInput').addEventListener('change', e => {
     if (e.target.files[0]) {
-      importCSV(e.target.files[0]);
+      openImportOptionsModal(e.target.files[0]);
       e.target.value = '';
     }
   });
@@ -726,8 +869,10 @@ function init() {
   // Escape key to close modals
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
-      if (!document.getElementById('playerModal').classList.contains('hidden'))  closePlayerModal();
-      if (!document.getElementById('confirmModal').classList.contains('hidden')) closeConfirmModal();
+      if (!document.getElementById('playerModal').classList.contains('hidden'))        closePlayerModal();
+      if (!document.getElementById('confirmModal').classList.contains('hidden'))       closeConfirmModal();
+      if (!document.getElementById('importOptionsModal').classList.contains('hidden')) closeImportOptionsModal();
+      if (!document.getElementById('csvExampleModal').classList.contains('hidden'))    closeCsvExampleModal();
     }
   });
 }

@@ -20,6 +20,7 @@
       </div>
       <div class="header-actions">
         <input type="file" id="csvFileInput" accept=".csv" class="visually-hidden" aria-label="Import CSV file">
+        <button class="btn btn-ghost" id="csvExampleBtn">Example CSV File</button>
         <button class="btn btn-ghost" id="importCsvBtn">&#8593; Import CSV</button>
         <button class="btn btn-ghost" id="exportCsvBtn">&#8595; Export CSV</button>
         <button class="btn btn-primary" id="addPlayerBtn">+ Add Player</button>
@@ -68,7 +69,6 @@
     <div class="toolbar">
       <div class="toolbar-filters">
         <div class="search-wrap">
-          <span class="search-icon" aria-hidden="true">&#9906;</span>
           <input type="search" id="searchInput" class="search-input" placeholder="Search players&#8230;" aria-label="Search players">
         </div>
         <select id="positionFilter" class="filter-select" aria-label="Filter by position">
@@ -216,6 +216,82 @@
       <div class="modal-footer">
         <button class="btn btn-ghost" id="confirmCancelBtn">Cancel</button>
         <button class="btn btn-danger" id="confirmDeleteBtn">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== IMPORT OPTIONS MODAL ===================== -->
+  <div class="modal-overlay hidden" id="importOptionsModal" role="dialog" aria-modal="true" aria-labelledby="importOptionsTitle">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 id="importOptionsTitle">Import CSV</h2>
+        <button class="modal-close" id="importOptionsClose" aria-label="Close">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <p class="import-filename" id="importFilename"></p>
+        <p class="import-mode-label">How should this file be imported?</p>
+        <div class="import-options">
+          <label class="import-option">
+            <input type="radio" name="importMode" value="append" checked>
+            <div class="import-option-body">
+              <span class="import-option-title">Append to roster</span>
+              <span class="import-option-desc">Add the imported players to your existing roster</span>
+            </div>
+          </label>
+          <label class="import-option replace-option">
+            <input type="radio" name="importMode" value="replace">
+            <div class="import-option-body">
+              <span class="import-option-title">Replace entire roster</span>
+              <span class="import-option-desc">Remove all current players and replace with the imported ones</span>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-dark" id="importOptionsCancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="importOptionsConfirmBtn">Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CSV EXAMPLE MODAL ===================== -->
+  <div class="modal-overlay hidden" id="csvExampleModal" role="dialog" aria-modal="true" aria-labelledby="csvExampleTitle">
+    <div class="modal modal-csv">
+      <div class="modal-header">
+        <h2 id="csvExampleTitle">CSV Format &amp; Example</h2>
+        <button class="modal-close" id="csvExampleClose" aria-label="Close">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <p class="csv-intro">Your CSV must have a <strong>Name</strong> column. All other columns are optional and case-insensitive. Unknown values fall back to the defaults below.</p>
+        <table class="csv-col-table">
+          <thead>
+            <tr><th>Column</th><th>Allowed values</th><th>Default</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>Name</code></td><td>Any text</td><td><em>required</em></td></tr>
+            <tr><td><code>Number</code></td><td>Any text</td><td><em>blank</em></td></tr>
+            <tr><td><code>Position</code></td><td><code>Forward</code>, <code>Defense</code>, <code>Goalie</code></td><td>Forward</td></tr>
+            <tr><td><code>Status</code></td><td><code>Active</code>, <code>Injured</code>, <code>Inactive</code></td><td>Active</td></tr>
+            <tr><td><code>Line</code></td><td><code>1</code>, <code>2</code>, <code>3</code>, <code>Bench</code></td><td>Bench</td></tr>
+            <tr><td><code>PP</code></td><td><code>true</code>, <code>false</code>, <code>yes</code>, <code>1</code></td><td>false</td></tr>
+            <tr><td><code>PK</code></td><td><code>true</code>, <code>false</code>, <code>yes</code>, <code>1</code></td><td>false</td></tr>
+            <tr><td><code>Notes</code></td><td>Any text</td><td><em>blank</em></td></tr>
+          </tbody>
+        </table>
+        <pre class="csv-pre">Name,Number,Position,Status,Line,PP,PK,Notes
+Jake Broom,7,Forward,Active,1,true,false,Captain
+Sara Sweep,12,Defense,Active,1,true,true,
+Mike Ice,3,Goalie,Active,1,false,false,
+Tyler Frost,22,Forward,Active,2,false,true,
+Jess Chill,9,Forward,Active,2,true,false,
+Ryan Rink,5,Defense,Active,2,false,true,
+Dana Puck,18,Forward,Active,3,false,false,
+Pat Glide,11,Defense,Active,3,false,false,
+Sam Slide,4,Goalie,Inactive,Bench,false,false,Backup goalie</pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-dark" id="csvExampleCloseFtr">Close</button>
+        <button class="btn btn-primary" id="downloadExampleBtn">&#8595; Download Example</button>
       </div>
     </div>
   </div>
