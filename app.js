@@ -706,6 +706,7 @@ Pat Glide,11,Defense,Active,3,false,false,
 Sam Slide,4,Goalie,Inactive,Bench,false,false,Backup goalie`;
 
 function openCsvExampleModal() {
+  document.querySelector('.csv-pre').textContent = EXAMPLE_CSV;
   document.getElementById('csvExampleModal').classList.remove('hidden');
 }
 
