@@ -892,6 +892,71 @@ input[type="checkbox"]:checked + .pk-chip {
 .line-section.line-bench.drag-over { outline-color: var(--bench-fg); background: rgba(71,85,105,.05); }
 
 /* ============================================================
+   SHARE BANNER & READ-ONLY MODE
+   ============================================================ */
+.share-banner {
+  background: #eff6ff;
+  border-bottom: 2px solid #bfdbfe;
+  padding: 0.6rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.share-banner-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e40af;
+}
+.btn-sm {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+/* Suppress all write controls when body has .share-mode */
+.share-mode .header-actions              { display: none !important; }
+.share-mode .card-actions                { display: none !important; }
+.share-mode .col-actions                 { display: none !important; }
+.share-mode .col-actions-hd             { display: none !important; }
+.share-mode .col-toggles                 { display: none !important; }
+.share-mode .col-toggles-hd             { display: none !important; }
+.share-mode [contenteditable]            { pointer-events: none; cursor: default; }
+.share-mode .player-chip[draggable]      { cursor: default; }
+
+/* ============================================================
+   SHARE MODAL
+   ============================================================ */
+.modal-share { max-width: 520px; }
+
+.share-modal-desc {
+  font-size: 0.875rem;
+  color: var(--c-text-2);
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+.share-url-wrap {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+.share-url-input {
+  flex: 1;
+  min-width: 0;
+  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+  font-size: 0.75rem;
+  background: var(--c-bg);
+  cursor: text;
+  border-radius: var(--radius);
+}
+.share-url-note {
+  font-size: 0.775rem;
+  color: var(--c-text-muted);
+  line-height: 1.5;
+  margin-top: 0.6rem;
+}
+
+/* ============================================================
    IMPORT OPTIONS MODAL
    ============================================================ */
 .import-filename {

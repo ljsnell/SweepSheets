@@ -17,6 +17,7 @@ const state = {
   filter: { search: '', position: '', status: '', line: '' },
   editingId: null,
   deletingId: null,
+  shareMode: false,
 };
 
 // ============================================================
@@ -39,6 +40,57 @@ function loadData() {
     if (saved.team)    state.team    = { ...state.team, ...saved.team };
   } catch (e) {
     console.warn('Could not load saved data:', e);
+  }
+}
+
+// ============================================================
+// SHARE — ENCODE / DECODE
+// ============================================================
+
+function encodeRosterData() {
+  // Strip id/createdAt to keep the URL as short as possible
+  const data = {
+    team: state.team,
+    players: state.players.map(({ id, createdAt, ...rest }) => rest),
+  };
+  const json  = JSON.stringify(data);
+  const bytes = new TextEncoder().encode(json);
+  const chars = Array.from(bytes, b => String.fromCharCode(b));
+  // URL-safe base64: replace + → -, / → _, strip trailing =
+  return btoa(chars.join(''))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function decodeRosterData(encoded) {
+  const b64    = encoded.replace(/-/g, '+').replace(/_/g, '/');
+  const binary = atob(b64);
+  const bytes  = Uint8Array.from(binary, c => c.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function getShareUrl() {
+  const base = window.location.origin + window.location.pathname;
+  return `${base}#share=${encodeRosterData()}`;
+}
+
+// Called at startup — returns true when the page was loaded via a share link
+function checkShareMode() {
+  const hash = window.location.hash;
+  if (!hash.startsWith('#share=')) return false;
+  try {
+    const data = decodeRosterData(hash.slice(7));
+    state.team    = { ...state.team, ...data.team };
+    state.players = (data.players || []).map(p => ({
+      id: genId(), createdAt: Date.now(),
+      line: 'Bench', pp: false, pk: false, notes: '',
+      ...p,
+    }));
+    state.shareMode = true;
+    return true;
+  } catch (e) {
+    console.warn('Invalid share link:', e);
+    history.replaceState(null, '', window.location.pathname);
+    return false;
   }
 }
 
@@ -324,6 +376,7 @@ function renderLines() {
 // ============================================================
 
 function initLineDrag() {
+  if (state.shareMode) return;
   const linesEl = document.getElementById('linesContent');
   if (!linesEl) return;
 
@@ -673,11 +726,73 @@ function downloadExampleCsv() {
 }
 
 // ============================================================
+// MODAL — SHARE
+// ============================================================
+
+function openShareModal() {
+  if (state.players.length === 0) {
+    alert('Add some players before sharing.');
+    return;
+  }
+  document.getElementById('shareUrlInput').value = getShareUrl();
+  document.getElementById('shareModal').classList.remove('hidden');
+  // Auto-select the URL text so the user can copy manually too
+  setTimeout(() => document.getElementById('shareUrlInput').select(), 50);
+}
+
+function closeShareModal() {
+  document.getElementById('shareModal').classList.add('hidden');
+}
+
+async function copyShareLink() {
+  const input = document.getElementById('shareUrlInput');
+  const btn   = document.getElementById('copyShareLinkBtn');
+  try {
+    await navigator.clipboard.writeText(input.value);
+  } catch {
+    // Fallback for browsers that block clipboard without user gesture
+    input.select();
+    document.execCommand('copy');
+  }
+  const orig = btn.textContent;
+  btn.textContent = 'Copied!';
+  setTimeout(() => { btn.textContent = orig; }, 2000);
+}
+
+function saveSharedRoster() {
+  const count = state.players.length;
+  if (count === 0) { alert('No players to save.'); return; }
+
+  let existingCount = 0;
+  try {
+    existingCount = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}').players?.length ?? 0;
+  } catch {}
+
+  const msg = existingCount > 0
+    ? `Replace your current ${existingCount} player${existingCount !== 1 ? 's' : ''} with this shared roster (${count} player${count !== 1 ? 's' : ''})?`
+    : `Save this shared roster (${count} player${count !== 1 ? 's' : ''}) to your device?`;
+
+  if (!confirm(msg)) return;
+
+  state.shareMode = false;
+  document.body.classList.remove('share-mode');
+  document.getElementById('shareBanner').classList.add('hidden');
+  history.replaceState(null, '', window.location.pathname);
+  saveData();
+  render();
+}
+
+// ============================================================
 // EVENTS
 // ============================================================
 
 function init() {
-  loadData();
+  const isShared = checkShareMode();
+  if (!isShared) loadData();
+  if (state.shareMode) {
+    document.body.classList.add('share-mode');
+    document.getElementById('shareBanner').classList.remove('hidden');
+  }
   render();
 
   // ---- Team name / season in-place editing ----
@@ -746,6 +861,16 @@ function init() {
     }
   });
 
+  // ---- Share ----
+  document.getElementById('shareBtn').addEventListener('click', openShareModal);
+  document.getElementById('shareModalClose').addEventListener('click', closeShareModal);
+  document.getElementById('shareModalCloseFtr').addEventListener('click', closeShareModal);
+  document.getElementById('copyShareLinkBtn').addEventListener('click', copyShareLink);
+  document.getElementById('saveCopyBtn').addEventListener('click', saveSharedRoster);
+  document.getElementById('shareModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeShareModal();
+  });
+
   // ---- Filters ----
   document.getElementById('searchInput').addEventListener('input', e => {
     state.filter.search = e.target.value;
@@ -800,6 +925,7 @@ function init() {
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
+    if (state.shareMode) return;
     const { action, id } = btn.dataset;
     if (!id) return;
 
@@ -818,6 +944,7 @@ function init() {
 
   // ---- Inline line select in table ----
   document.addEventListener('change', e => {
+    if (state.shareMode) return;
     if (e.target.dataset.action === 'line') {
       updatePlayer(e.target.dataset.id, { line: e.target.value });
     }
@@ -873,6 +1000,7 @@ function init() {
       if (!document.getElementById('confirmModal').classList.contains('hidden'))       closeConfirmModal();
       if (!document.getElementById('importOptionsModal').classList.contains('hidden')) closeImportOptionsModal();
       if (!document.getElementById('csvExampleModal').classList.contains('hidden'))    closeCsvExampleModal();
+      if (!document.getElementById('shareModal').classList.contains('hidden'))         closeShareModal();
     }
   });
 }
