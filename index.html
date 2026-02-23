@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SweepSheets — Broomball Roster</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <span class="header-icon" aria-hidden="true">🧹</span>
+        <div>
+          <div class="team-name" id="teamName" contenteditable="true" spellcheck="false">SweepSheets</div>
+          <div class="team-season" id="teamSeason" contenteditable="true" spellcheck="false">2025–26 Season</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <input type="file" id="csvFileInput" accept=".csv" class="visually-hidden" aria-label="Import CSV file">
+        <button class="btn btn-ghost" id="importCsvBtn">&#8593; Import CSV</button>
+        <button class="btn btn-ghost" id="exportCsvBtn">&#8595; Export CSV</button>
+        <button class="btn btn-primary" id="addPlayerBtn">+ Add Player</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== TAB NAV ===================== -->
+  <nav class="tab-bar" role="tablist">
+    <button class="tab-btn active" id="tabRoster" role="tab" aria-selected="true" aria-controls="rosterTabContent">Roster</button>
+    <button class="tab-btn" id="tabLines" role="tab" aria-selected="false" aria-controls="linesTabContent">Lines</button>
+  </nav>
+
+  <!-- ===================== ROSTER TAB ===================== -->
+  <div id="rosterTabContent" class="tab-content" role="tabpanel">
+
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-num" id="statTotal">0</span>
+        <span class="stat-lbl">Total</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num" id="statActive">0</span>
+        <span class="stat-lbl">Active</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num stat-fwd" id="statForwards">0</span>
+        <span class="stat-lbl">Fwds</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num stat-def" id="statDefense">0</span>
+        <span class="stat-lbl">Def</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num stat-goal" id="statGoalies">0</span>
+        <span class="stat-lbl">Goalies</span>
+      </div>
+    </div>
+
+    <!-- Toolbar: search, filters, view toggle -->
+    <div class="toolbar">
+      <div class="toolbar-filters">
+        <div class="search-wrap">
+          <span class="search-icon" aria-hidden="true">&#9906;</span>
+          <input type="search" id="searchInput" class="search-input" placeholder="Search players&#8230;" aria-label="Search players">
+        </div>
+        <select id="positionFilter" class="filter-select" aria-label="Filter by position">
+          <option value="">All Positions</option>
+          <option value="Forward">Forward</option>
+          <option value="Defense">Defense</option>
+          <option value="Goalie">Goalie</option>
+        </select>
+        <select id="statusFilter" class="filter-select" aria-label="Filter by status">
+          <option value="">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Injured">Injured</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+        <select id="lineFilter" class="filter-select" aria-label="Filter by line">
+          <option value="">All Lines</option>
+          <option value="1">Line 1</option>
+          <option value="2">Line 2</option>
+          <option value="3">Line 3</option>
+          <option value="Bench">Bench</option>
+        </select>
+      </div>
+      <div class="view-toggles" role="group" aria-label="View mode">
+        <button class="view-btn active" id="cardsViewBtn" title="Card view" aria-pressed="true">&#8862;</button>
+        <button class="view-btn" id="tableViewBtn" title="Table view" aria-pressed="false">&#9776;</button>
+      </div>
+    </div>
+
+    <!-- Cards view -->
+    <div id="rosterCards" class="roster-cards" aria-live="polite"></div>
+
+    <!-- Table view (hidden by default) -->
+    <div id="rosterTable" class="table-wrap hidden">
+      <table class="roster-table" aria-label="Player roster">
+        <thead>
+          <tr>
+            <th class="sortable col-num" data-sort="number"># <span class="sort-icon" aria-hidden="true">&#8597;</span></th>
+            <th class="sortable" data-sort="name">Name <span class="sort-icon" aria-hidden="true">&#8597;</span></th>
+            <th class="sortable" data-sort="position">Position <span class="sort-icon" aria-hidden="true">&#8597;</span></th>
+            <th class="sortable" data-sort="status">Status <span class="sort-icon" aria-hidden="true">&#8597;</span></th>
+            <th class="sortable" data-sort="line">Line <span class="sort-icon" aria-hidden="true">&#8597;</span></th>
+            <th>PP / PK</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="rosterTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="empty-state hidden">
+      <div class="empty-icon" aria-hidden="true">🧹</div>
+      <h2>No players yet</h2>
+      <p>Add your first player to build the roster.</p>
+      <button class="btn btn-primary" id="emptyAddBtn">+ Add Player</button>
+    </div>
+
+  </div><!-- /rosterTabContent -->
+
+  <!-- ===================== LINES TAB ===================== -->
+  <div id="linesTabContent" class="tab-content hidden" role="tabpanel">
+    <div id="linesContent" aria-live="polite"></div>
+  </div>
+
+  <!-- ===================== ADD/EDIT MODAL ===================== -->
+  <div class="modal-overlay hidden" id="playerModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add Player</h2>
+        <button class="modal-close" id="modalClose" aria-label="Close">&#10005;</button>
+      </div>
+      <form id="playerForm" class="modal-body" novalidate>
+        <div class="form-row">
+          <div class="form-group flex-3">
+            <label for="playerName">Name <span class="req" aria-hidden="true">*</span></label>
+            <input type="text" id="playerName" required placeholder="Full name" autocomplete="off">
+          </div>
+          <div class="form-group flex-1">
+            <label for="playerNumber">Jersey #</label>
+            <input type="text" id="playerNumber" placeholder="00" maxlength="4" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="playerPosition">Position</label>
+            <select id="playerPosition">
+              <option value="Forward">Forward</option>
+              <option value="Defense">Defense</option>
+              <option value="Goalie">Goalie</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="playerStatus">Status</label>
+            <select id="playerStatus">
+              <option value="Active">Active</option>
+              <option value="Injured">Injured</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="playerLine">Line</label>
+            <select id="playerLine">
+              <option value="1">Line 1</option>
+              <option value="2">Line 2</option>
+              <option value="3">Line 3</option>
+              <option value="Bench">Bench</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Special Teams</label>
+          <div class="toggle-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="playerPP">
+              <span class="toggle-chip pp-chip">&#9889; Power Play</span>
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="playerPK">
+              <span class="toggle-chip pk-chip">&#128737; Penalty Kill</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="playerNotes">Notes</label>
+          <textarea id="playerNotes" rows="2" placeholder="Any notes&#8230;"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Player</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== CONFIRM DELETE MODAL ===================== -->
+  <div class="modal-overlay hidden" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 id="confirmTitle">Remove Player</h2>
+        <button class="modal-close" id="confirmClose" aria-label="Close">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <p>Remove <strong id="confirmPlayerName"></strong> from the roster?<br>This cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="confirmCancelBtn">Cancel</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
