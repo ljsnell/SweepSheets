@@ -152,6 +152,7 @@ function getFiltered() {
 function posBadge(pos) {
   const map = {
     Forward: 'badge-fwd',
+    Center:  'badge-ctr',
     Defense: 'badge-def',
     Goalie:  'badge-goal',
   };
@@ -189,7 +190,7 @@ function renderStats() {
   const all = state.players;
   document.getElementById('statTotal').textContent    = all.length;
   document.getElementById('statActive').textContent   = all.filter(p => p.status === 'Active').length;
-  document.getElementById('statForwards').textContent = all.filter(p => p.position === 'Forward').length;
+  document.getElementById('statForwards').textContent = all.filter(p => p.position === 'Forward' || p.position === 'Center').length;
   document.getElementById('statDefense').textContent  = all.filter(p => p.position === 'Defense').length;
   document.getElementById('statGoalies').textContent  = all.filter(p => p.position === 'Goalie').length;
 }
@@ -321,6 +322,7 @@ function renderLines() {
 
   lines.forEach(({ key, label, cls }) => {
     const players  = state.players.filter(p => p.line === key);
+    const centers  = players.filter(p => p.position === 'Center');
     const forwards = players.filter(p => p.position === 'Forward');
     const defense  = players.filter(p => p.position === 'Defense');
     const goalies  = players.filter(p => p.position === 'Goalie');
@@ -336,7 +338,7 @@ function renderLines() {
         <div class="line-title">${label}</div>
         ${players.length === 0
           ? '<p class="line-empty">No players assigned</p>'
-          : groupHTML('Forwards', forwards) + groupHTML('Defense', defense) + groupHTML('Goalies', goalies)
+          : groupHTML('Centers', centers) + groupHTML('Forwards', forwards) + groupHTML('Defense', defense) + groupHTML('Goalies', goalies)
         }
       </div>`;
   });
@@ -430,7 +432,7 @@ function initLineDrag() {
 }
 
 function chipHTML(p) {
-  const cls = { Forward: 'chip-fwd', Defense: 'chip-def', Goalie: 'chip-goal' }[p.position] || '';
+  const cls = { Forward: 'chip-fwd', Center: 'chip-ctr', Defense: 'chip-def', Goalie: 'chip-goal' }[p.position] || '';
   return `
     <div class="player-chip ${cls}" draggable="true" data-id="${esc(p.id)}" title="Drag to move to a different line">
       <span class="chip-number">${p.number ? '#' + esc(p.number) : '&mdash;'}</span>
@@ -648,7 +650,7 @@ function parseAndImportCSV(text, mode = 'append') {
         createdAt: Date.now(),
         name,
         number:   (cols[col('number')] ?? '').trim(),
-        position: pick('position', ['Forward', 'Defense', 'Goalie'], 'Forward'),
+        position: pick('position', ['Forward', 'Center', 'Defense', 'Goalie'], 'Forward'),
         status:   pick('status',   ['Active', 'Injured', 'Inactive'], 'Active'),
         line:     pick('line',     ['1', '2', '3', 'Bench'], 'Bench'),
         pp:       boolCol('pp'),

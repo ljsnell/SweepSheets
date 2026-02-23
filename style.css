@@ -23,6 +23,8 @@
   /* Position */
   --badge-fwd-bg:    #dbeafe;
   --badge-fwd-fg:    #1e40af;
+  --badge-ctr-bg:    #ede9fe;
+  --badge-ctr-fg:    #5b21b6;
   --badge-def-bg:    #d1fae5;
   --badge-def-fg:    #065f46;
   --badge-goal-bg:   #fef3c7;
@@ -268,6 +270,7 @@ input, select, textarea { font-family: inherit; }
   color: var(--c-text);
 }
 .stat-num.stat-fwd  { color: var(--badge-fwd-fg); }
+.stat-num.stat-ctr  { color: var(--badge-ctr-fg); }
 .stat-num.stat-def  { color: var(--badge-def-fg); }
 .stat-num.stat-goal { color: var(--badge-goal-fg); }
 .stat-lbl {
@@ -385,6 +388,7 @@ input, select, textarea { font-family: inherit; }
   white-space: nowrap;
 }
 .badge-fwd   { background: var(--badge-fwd-bg);    color: var(--badge-fwd-fg); }
+.badge-ctr   { background: var(--badge-ctr-bg);    color: var(--badge-ctr-fg); }
 .badge-def   { background: var(--badge-def-bg);    color: var(--badge-def-fg); }
 .badge-goal  { background: var(--badge-goal-bg);   color: var(--badge-goal-fg); }
 .badge-active  { background: var(--badge-active-bg); color: var(--badge-active-fg); }
@@ -633,6 +637,7 @@ th.sort-desc .sort-icon { opacity: 1; color: var(--c-accent); }
   background: var(--c-bg);
 }
 .player-chip.chip-fwd  { background: var(--badge-fwd-bg);  border-color: #bfdbfe; }
+.player-chip.chip-ctr  { background: var(--badge-ctr-bg);  border-color: #ddd6fe; }
 .player-chip.chip-def  { background: var(--badge-def-bg);  border-color: #a7f3d0; }
 .player-chip.chip-goal { background: var(--badge-goal-bg); border-color: #fde68a; }
 

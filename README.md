@@ -21,7 +21,7 @@ When importing, your CSV file should have a header row with these column names (
 Name, Number, Position, Status, Line, PP, PK, Notes
 ```
 
-- **Position**: `Forward`, `Defense`, or `Goalie` (defaults to `Forward`)
+- **Position**: `Forward`, `Center`, `Defense`, or `Goalie` (defaults to `Forward`)
 - **Status**: `Active`, `Injured`, or `Inactive` (defaults to `Active`)
 - **Line**: `1`, `2`, `3`, or `Bench` (defaults to `Bench`)
 - **PP / PK**: `true` or `false`
