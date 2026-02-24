@@ -1146,12 +1146,96 @@ input[type="checkbox"]:checked + .pk-chip {
 }
 
 /* ============================================================
+   PRINT SHEET (hidden on screen)
+   ============================================================ */
+#printSheet { display: none; }
+
+/* ============================================================
    PRINT
    ============================================================ */
 @media print {
-  .site-header, .tab-bar, .toolbar, .card-actions, .col-actions, .col-toggles { display: none !important; }
-  .tab-content { padding: 0; }
-  .player-card { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
-  .table-wrap { box-shadow: none; border: 1px solid #ccc; }
-  .modal-overlay { display: none !important; }
+  /* Hide the entire app; only the print sheet is visible. */
+  body > *:not(#printSheet) { display: none !important; }
+  #printSheet {
+    display: block !important;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 10pt;
+    color: #000;
+    background: #fff;
+  }
+
+  /* ---- Masthead ---- */
+  .print-masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1.5pt solid #000;
+    padding-bottom: 5pt;
+    margin-bottom: 10pt;
+  }
+  .print-team-name {
+    font-size: 18pt;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .print-season {
+    font-size: 10pt;
+    color: #444;
+  }
+
+  /* ---- Lines grid ---- */
+  .print-lines {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8pt 14pt;
+    margin-bottom: 10pt;
+  }
+  .print-line {
+    break-inside: avoid;
+    border: 0.75pt solid #bbb;
+    border-radius: 3pt;
+    padding: 5pt 7pt;
+  }
+  .print-line-title {
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding-bottom: 3pt;
+    margin-bottom: 4pt;
+    border-bottom: 0.5pt solid #ddd;
+  }
+
+  /* ---- Position groups within a line ---- */
+  .print-group { margin-top: 4pt; }
+  .print-group-label {
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #555;
+  }
+  .print-player {
+    font-size: 9.5pt;
+    line-height: 1.45;
+    padding-left: 6pt;
+  }
+  .print-num   { color: #555; }
+  .print-sp    { font-size: 7.5pt; color: #333; margin-left: 3pt; }
+  .print-empty { font-size: 9pt; color: #999; font-style: italic; }
+
+  /* ---- Special teams units ---- */
+  .print-special {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6pt 14pt;
+    border-top: 0.75pt solid #bbb;
+    padding-top: 7pt;
+  }
+  .print-unit-title {
+    font-size: 9pt;
+    font-weight: 700;
+    margin-bottom: 2pt;
+  }
+  .print-unit-players { font-size: 9pt; line-height: 1.4; }
 }

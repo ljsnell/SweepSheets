@@ -864,6 +864,66 @@ function downloadExampleCsv() {
 }
 
 // ============================================================
+// PRINT
+// ============================================================
+
+function printLineup() {
+  if (state.players.length === 0) {
+    alert('Add some players before printing.');
+    return;
+  }
+
+  // Renders a list of players for one position group within a line section.
+  const positionGroup = (posLabel, players) => {
+    if (players.length === 0) return '';
+    const rows = players.map(p => {
+      const num    = p.number ? ` <span class="print-num">#${esc(p.number)}</span>` : '';
+      const badges = [p.pp ? 'PP' : '', p.pk ? 'PK' : ''].filter(Boolean).join('\u2009');
+      const sp     = badges ? ` <span class="print-sp">${badges}</span>` : '';
+      return `<div class="print-player">${esc(p.name)}${num}${sp}</div>`;
+    }).join('');
+    return `<div class="print-group"><div class="print-group-label">${esc(posLabel)}</div>${rows}</div>`;
+  };
+
+  // Renders one line/bench section.
+  const lineSection = (key, label) => {
+    const inLine = state.players.filter(p => p.line === key);
+    const body   = inLine.length === 0
+      ? '<span class="print-empty">No players</span>'
+      : POSITIONS.map(({ value, label: posLabel }) =>
+          positionGroup(posLabel, inLine.filter(p => p.position === value))
+        ).join('');
+    return `<div class="print-line"><div class="print-line-title">${esc(label)}</div>${body}</div>`;
+  };
+
+  // Renders a special-teams unit (PP or PK).
+  const specialUnit = (icon, title, players) => {
+    const names = players.length === 0
+      ? '<em>None assigned</em>'
+      : players.map(p => `${esc(p.name)}${p.number ? ' #' + esc(p.number) : ''}`).join(', ');
+    return `<div class="print-unit"><div class="print-unit-title">${icon} ${esc(title)}</div><div class="print-unit-players">${names}</div></div>`;
+  };
+
+  document.getElementById('printSheet').innerHTML = `
+    <div class="print-masthead">
+      <span class="print-team-name">${esc(state.team.name)}</span>
+      <span class="print-season">${esc(state.team.season)}</span>
+    </div>
+    <div class="print-lines">
+      ${lineSection('1', 'Line 1')}
+      ${lineSection('2', 'Line 2')}
+      ${lineSection('3', 'Line 3')}
+      ${lineSection('Bench', 'Bench')}
+    </div>
+    <div class="print-special">
+      ${specialUnit('&#9889;', 'Power Play', state.players.filter(p => p.pp))}
+      ${specialUnit('&#128737;', 'Penalty Kill', state.players.filter(p => p.pk))}
+    </div>`;
+
+  window.print();
+}
+
+// ============================================================
 // MODAL — SHARE
 // ============================================================
 
@@ -985,6 +1045,7 @@ function init() {
   document.getElementById('tabSettings').addEventListener('click', () => switchTab('settings'));
 
   // ---- Header buttons ----
+  document.getElementById('printBtn').addEventListener('click', printLineup);
   document.getElementById('addPlayerBtn').addEventListener('click', openAddModal);
   document.getElementById('emptyAddBtn').addEventListener('click', openAddModal);
   document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);

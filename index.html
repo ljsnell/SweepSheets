@@ -24,6 +24,7 @@
         <button class="btn btn-ghost" id="csvExampleBtn">Example CSV File</button>
         <button class="btn btn-ghost" id="importCsvBtn">&#8593; Import CSV</button>
         <button class="btn btn-ghost" id="exportCsvBtn">&#8595; Export CSV</button>
+        <button class="btn btn-ghost" id="printBtn">&#128438; Print</button>
         <button class="btn btn-ghost" id="shareBtn">&#128279; Share</button>
         <button class="btn btn-primary" id="addPlayerBtn">+ Add Player</button>
       </div>
@@ -321,6 +322,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Print sheet: hidden on-screen, shown only in @media print -->
+  <div id="printSheet" aria-hidden="true"></div>
 
   <script src="app.js"></script>
 </body>
