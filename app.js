@@ -697,15 +697,18 @@ function splitRow(row) {
 // ============================================================
 
 const EXAMPLE_CSV = `Name,Number,Position,Status,Line,PP,PK,Notes
-Jake Broom,7,Center,Active,1,true,false,Captain
-Sara Sweep,12,Defense,Active,1,true,true,
-Mike Ice,3,Goalie,Active,1,false,false,
-Tyler Frost,22,Forward,Active,2,false,true,
-Jess Chill,9,Forward,Active,2,true,false,
-Ryan Rink,5,Defense,Active,2,false,true,
-Dana Puck,18,Forward,Active,3,false,false,
-Pat Glide,11,Defense,Active,3,false,false,
-Sam Slide,4,Goalie,Inactive,Bench,false,false,Backup goalie`;
+Grant Goals,7,Center,Active,1,true,false,Captain
+Sara Sweep,12,Forward,Active,1,true,true,
+Ike Ice,3,Goalie,Active,1,false,false,
+Marcus Man-Advantage,22,Forward,Active,2,false,true,
+Tyler Top Corner,9,Defense,Active,2,true,false,
+Erin Eight-Minutes,5,Defense,Active,2,false,true,
+Knute Kickshot,18,Forward,Active,2,false,false,
+Zack Zamboni,11,Defense,Active,1,false,false,
+Ellen Enforcer,55,Center,Active,2,false,false,
+Gail Gamewinner,2,Defense,Active,1,false,false,
+Luke Linechange,57,Forward,Inactive,Bench,false,false,
+Lenny Leftwing,4,Forward,Active,1,false,false,Backup goalie`;
 
 function openCsvExampleModal() {
   document.querySelector('.csv-pre').textContent = EXAMPLE_CSV;
