@@ -16,9 +16,28 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 const STORAGE_KEY = 'sweepsheets_data';
 
+// ============================================================
+// CONSTANTS
+// ============================================================
+
+// Single source of truth for positions.
+// Add a new position here and it automatically flows through to badges,
+// chips, CSV import/export validation, and the Settings color picker.
+const POSITIONS = [
+  { value: 'Forward', label: 'Forward', cssKey: 'fwd',  defaultColor: '#1e40af' },
+  { value: 'Center',  label: 'Center',  cssKey: 'ctr',  defaultColor: '#5b21b6' },
+  { value: 'Defense', label: 'Defense', cssKey: 'def',  defaultColor: '#065f46' },
+  { value: 'Goalie',  label: 'Goalie',  cssKey: 'goal', defaultColor: '#92400e' },
+];
+
+const STATUSES   = ['Active', 'Injured', 'Inactive'];
+const LINE_ORDER = ['1', '2', '3', 'Bench'];  // also defines sort order
+const TABS       = ['roster', 'lines', 'settings'];
+
 const state = {
   players: [],
   team: { name: 'SweepSheets', season: '2025\u201326 Season' },
+  settings: { positionColors: {} },  // {} means "use defaults from POSITIONS"
   tab: 'roster',
   view: 'cards',
   sort: { field: 'line', dir: 'asc' },
@@ -34,8 +53,9 @@ const state = {
 
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    players: state.players,
-    team: state.team,
+    players:  state.players,
+    team:     state.team,
+    settings: state.settings,
   }));
 }
 
@@ -44,11 +64,42 @@ function loadData() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     const saved = JSON.parse(raw);
-    if (saved.players) state.players = saved.players;
-    if (saved.team)    state.team    = { ...state.team, ...saved.team };
+    if (saved.players)  state.players  = saved.players;
+    if (saved.team)     state.team     = { ...state.team,     ...saved.team };
+    if (saved.settings) state.settings = { ...state.settings, ...saved.settings };
   } catch (e) {
     console.warn('Could not load saved data:', e);
   }
+}
+
+// ============================================================
+// SETTINGS — POSITION COLORS
+// ============================================================
+
+function hexToRgb(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return m
+    ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) }
+    : { r: 0, g: 0, b: 0 };
+}
+
+// Returns the user's stored color for a position, falling back to the default.
+function getPositionColor(positionValue) {
+  return state.settings.positionColors[positionValue]
+    || POSITIONS.find(p => p.value === positionValue)?.defaultColor
+    || '#888888';
+}
+
+// Applies --badge-{cssKey}-fg and --badge-{cssKey}-bg CSS variables to :root.
+// Called once on startup and again whenever a color setting changes.
+function applyPositionColors() {
+  const root = document.documentElement;
+  POSITIONS.forEach(({ value, cssKey }) => {
+    const color      = getPositionColor(value);
+    const { r, g, b } = hexToRgb(color);
+    root.style.setProperty(`--badge-${cssKey}-fg`, color);
+    root.style.setProperty(`--badge-${cssKey}-bg`, `rgba(${r}, ${g}, ${b}, 0.15)`);
+  });
 }
 
 // ============================================================
@@ -112,7 +163,11 @@ function esc(s) {
     .replace(/"/g, '&quot;');
 }
 
-function getFiltered() {
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function getFilteredPlayers() {
   const { search, position, status, line } = state.filter;
   return state.players
     .filter(p => {
@@ -131,13 +186,14 @@ function getFiltered() {
       let av = a[field] ?? '';
       let bv = b[field] ?? '';
       if (field === 'number') {
-        av = parseInt(av, 10) || 9999;
-        bv = parseInt(bv, 10) || 9999;
+        // Sort non-numeric jersey numbers to the end
+        av = parseInt(av, 10) || Number.MAX_SAFE_INTEGER;
+        bv = parseInt(bv, 10) || Number.MAX_SAFE_INTEGER;
       }
       if (field === 'line') {
-        const order = { '1': 0, '2': 1, '3': 2, 'Bench': 3 };
-        av = order[av] ?? 4;
-        bv = order[bv] ?? 4;
+        // Use LINE_ORDER for consistent, defined sort order
+        av = LINE_ORDER.indexOf(av); if (av === -1) av = LINE_ORDER.length;
+        bv = LINE_ORDER.indexOf(bv); if (bv === -1) bv = LINE_ORDER.length;
       }
       if (av < bv) return dir === 'asc' ? -1 : 1;
       if (av > bv) return dir === 'asc' ?  1 : -1;
@@ -150,13 +206,9 @@ function getFiltered() {
 // ============================================================
 
 function posBadge(pos) {
-  const map = {
-    Forward: 'badge-fwd',
-    Center:  'badge-ctr',
-    Defense: 'badge-def',
-    Goalie:  'badge-goal',
-  };
-  return `<span class="badge ${map[pos] || ''}">${esc(pos) || '&mdash;'}</span>`;
+  const posObj = POSITIONS.find(p => p.value === pos);
+  const cls    = posObj ? `badge-${posObj.cssKey}` : '';
+  return `<span class="badge ${cls}">${esc(pos) || '&mdash;'}</span>`;
 }
 
 function statusBadge(status) {
@@ -211,7 +263,7 @@ function renderTeamInfo() {
 // ============================================================
 
 function renderRoster() {
-  const players  = getFiltered();
+  const players  = getFilteredPlayers();
   const cardsEl  = document.getElementById('rosterCards');
   const tableEl  = document.getElementById('rosterTable');
   const emptyEl  = document.getElementById('emptyState');
@@ -270,7 +322,7 @@ function cardHTML(p) {
 }
 
 function rowHTML(p) {
-  const lineOptions = ['1', '2', '3', 'Bench']
+  const lineOptions = LINE_ORDER
     .map(v => `<option value="${v}" ${p.line === v ? 'selected' : ''}>${v === 'Bench' ? 'Bench' : 'Line ' + v}</option>`)
     .join('');
   return `
@@ -432,13 +484,91 @@ function initLineDrag() {
 }
 
 function chipHTML(p) {
-  const cls = { Forward: 'chip-fwd', Center: 'chip-ctr', Defense: 'chip-def', Goalie: 'chip-goal' }[p.position] || '';
+  const posObj = POSITIONS.find(pos => pos.value === p.position);
+  const cls    = posObj ? `chip-${posObj.cssKey}` : '';
   return `
     <div class="player-chip ${cls}" draggable="true" data-id="${esc(p.id)}" title="Drag to move to a different line">
       <span class="chip-number">${p.number ? '#' + esc(p.number) : '&mdash;'}</span>
       <span class="chip-name">${esc(p.name)}</span>
       <span class="chip-badges">${ppBadge(p.pp)}${pkBadge(p.pk)}</span>
     </div>`;
+}
+
+// ============================================================
+// RENDER — SETTINGS
+// ============================================================
+
+function renderSettings() {
+  const el = document.getElementById('settingsTabContent');
+
+  // If the panel is already rendered, just sync the input values without
+  // rebuilding the DOM (avoids disrupting any active color picker).
+  if (el.querySelector('.settings-content')) {
+    POSITIONS.forEach(({ value }) => {
+      const input = el.querySelector(`.color-picker[data-position="${value}"]`);
+      if (input && document.activeElement !== input) {
+        input.value = getPositionColor(value);
+      }
+    });
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="settings-content">
+      <div class="settings-section">
+        <h3 class="settings-section-title">Position Colors</h3>
+        <p class="settings-section-desc">Choose the color used for each position's badge and chip throughout the app.</p>
+        <div class="color-rows">
+          ${POSITIONS.map(({ value, label, cssKey }) => `
+            <div class="color-row">
+              <span class="badge badge-${cssKey} color-row-preview">${esc(label)}</span>
+              <input
+                type="color"
+                class="color-picker"
+                value="${getPositionColor(value)}"
+                data-position="${esc(value)}"
+                aria-label="${esc(label)} color"
+              >
+              <button class="btn btn-ghost btn-sm color-reset-btn" data-position="${esc(value)}">Reset</button>
+            </div>`).join('')}
+        </div>
+        <div class="settings-footer">
+          <button class="btn btn-ghost" id="resetAllColorsBtn">Reset all to defaults</button>
+        </div>
+      </div>
+    </div>`;
+
+  // Live color update as the user drags the picker
+  el.querySelectorAll('.color-picker').forEach(input => {
+    input.addEventListener('input', e => {
+      state.settings.positionColors[e.target.dataset.position] = e.target.value;
+      applyPositionColors();
+      saveData();
+    });
+  });
+
+  // Reset a single position back to its default color
+  el.querySelectorAll('.color-reset-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const pos = e.target.dataset.position;
+      delete state.settings.positionColors[pos];
+      applyPositionColors();
+      saveData();
+      // Update just this input rather than re-rendering the whole panel
+      const input = el.querySelector(`.color-picker[data-position="${pos}"]`);
+      if (input) input.value = getPositionColor(pos);
+    });
+  });
+
+  // Reset all positions to their defaults
+  document.getElementById('resetAllColorsBtn').addEventListener('click', () => {
+    state.settings.positionColors = {};
+    applyPositionColors();
+    saveData();
+    // Force a full re-render so all input values reflect the defaults
+    el.innerHTML = '';
+    renderSettings();
+  });
 }
 
 // ============================================================
@@ -450,8 +580,10 @@ function render() {
   renderStats();
   if (state.tab === 'roster') {
     renderRoster();
-  } else {
+  } else if (state.tab === 'lines') {
     renderLines();
+  } else if (state.tab === 'settings') {
+    renderSettings();
   }
 }
 
@@ -650,9 +782,9 @@ function parseAndImportCSV(text, mode = 'append') {
         createdAt: Date.now(),
         name,
         number:   (cols[col('number')] ?? '').trim(),
-        position: pick('position', ['Forward', 'Center', 'Defense', 'Goalie'], 'Forward'),
-        status:   pick('status',   ['Active', 'Injured', 'Inactive'], 'Active'),
-        line:     pick('line',     ['1', '2', '3', 'Bench'], 'Bench'),
+        position: pick('position', POSITIONS.map(p => p.value), 'Forward'),
+        status:   pick('status',   STATUSES,    'Active'),
+        line:     pick('line',     LINE_ORDER,  'Bench'),
         pp:       boolCol('pp'),
         pk:       boolCol('pk'),
         notes:    (cols[col('notes')] ?? '').trim(),
@@ -780,11 +912,39 @@ function saveSharedRoster() {
 
   if (!confirm(msg)) return;
 
+  // Preserve the recipient's own settings (position colors etc.) — don't overwrite with defaults.
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    if (saved.settings) state.settings = { ...state.settings, ...saved.settings };
+  } catch {}
+
   state.shareMode = false;
   document.body.classList.remove('share-mode');
   document.getElementById('shareBanner').classList.add('hidden');
   history.replaceState(null, '', window.location.pathname);
   saveData();
+  render();
+}
+
+// ============================================================
+// MODAL REGISTRY & TAB SWITCHING
+// ============================================================
+
+// Adding a new modal? Just add an entry here — the Escape handler picks it up automatically.
+const MODAL_REGISTRY = [
+  { id: 'playerModal',        close: closePlayerModal        },
+  { id: 'confirmModal',       close: closeConfirmModal       },
+  { id: 'importOptionsModal', close: closeImportOptionsModal },
+  { id: 'csvExampleModal',    close: closeCsvExampleModal    },
+  { id: 'shareModal',         close: closeShareModal         },
+];
+
+function switchTab(tab) {
+  state.tab = tab;
+  TABS.forEach(t => {
+    document.getElementById(`tab${capitalize(t)}`).classList.toggle('active',  t === tab);
+    document.getElementById(`${t}TabContent`).classList.toggle('hidden', t !== tab);
+  });
   render();
 }
 
@@ -799,6 +959,7 @@ function init() {
     document.body.classList.add('share-mode');
     document.getElementById('shareBanner').classList.remove('hidden');
   }
+  applyPositionColors();
   render();
 
   // ---- Team name / season in-place editing ----
@@ -819,22 +980,9 @@ function init() {
   });
 
   // ---- Tab switching ----
-  document.getElementById('tabRoster').addEventListener('click', () => {
-    state.tab = 'roster';
-    document.getElementById('tabRoster').classList.add('active');
-    document.getElementById('tabLines').classList.remove('active');
-    document.getElementById('rosterTabContent').classList.remove('hidden');
-    document.getElementById('linesTabContent').classList.add('hidden');
-    render();
-  });
-  document.getElementById('tabLines').addEventListener('click', () => {
-    state.tab = 'lines';
-    document.getElementById('tabLines').classList.add('active');
-    document.getElementById('tabRoster').classList.remove('active');
-    document.getElementById('linesTabContent').classList.remove('hidden');
-    document.getElementById('rosterTabContent').classList.add('hidden');
-    render();
-  });
+  document.getElementById('tabRoster').addEventListener('click',   () => switchTab('roster'));
+  document.getElementById('tabLines').addEventListener('click',    () => switchTab('lines'));
+  document.getElementById('tabSettings').addEventListener('click', () => switchTab('settings'));
 
   // ---- Header buttons ----
   document.getElementById('addPlayerBtn').addEventListener('click', openAddModal);
@@ -928,24 +1076,19 @@ function init() {
   });
 
   // ---- Player card / table action buttons (event delegation) ----
+  const ACTION_HANDLERS = {
+    'edit':      (id) => openEditModal(id),
+    'delete':    (id) => openConfirmModal(id),
+    'toggle-pp': (id) => { const p = state.players.find(p => p.id === id); if (p) updatePlayer(id, { pp: !p.pp }); },
+    'toggle-pk': (id) => { const p = state.players.find(p => p.id === id); if (p) updatePlayer(id, { pk: !p.pk }); },
+  };
+
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    if (state.shareMode) return;
+    if (!btn || state.shareMode) return;
     const { action, id } = btn.dataset;
-    if (!id) return;
-
-    if (action === 'edit') {
-      openEditModal(id);
-    } else if (action === 'delete') {
-      openConfirmModal(id);
-    } else if (action === 'toggle-pp') {
-      const p = state.players.find(p => p.id === id);
-      if (p) updatePlayer(id, { pp: !p.pp });
-    } else if (action === 'toggle-pk') {
-      const p = state.players.find(p => p.id === id);
-      if (p) updatePlayer(id, { pk: !p.pk });
-    }
+    if (!id || !ACTION_HANDLERS[action]) return;
+    ACTION_HANDLERS[action](id);
   });
 
   // ---- Inline line select in table ----
@@ -999,14 +1142,14 @@ function init() {
     if (e.target === e.currentTarget) closeConfirmModal();
   });
 
-  // Escape key to close modals
+  // Escape key to close the topmost open modal
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      if (!document.getElementById('playerModal').classList.contains('hidden'))        closePlayerModal();
-      if (!document.getElementById('confirmModal').classList.contains('hidden'))       closeConfirmModal();
-      if (!document.getElementById('importOptionsModal').classList.contains('hidden')) closeImportOptionsModal();
-      if (!document.getElementById('csvExampleModal').classList.contains('hidden'))    closeCsvExampleModal();
-      if (!document.getElementById('shareModal').classList.contains('hidden'))         closeShareModal();
+    if (e.key !== 'Escape') return;
+    for (const { id, close } of MODAL_REGISTRY) {
+      if (!document.getElementById(id).classList.contains('hidden')) {
+        close();
+        return;
+      }
     }
   });
 }

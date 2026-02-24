@@ -636,10 +636,10 @@ th.sort-desc .sort-icon { opacity: 1; color: var(--c-accent); }
   border: 1px solid var(--c-border);
   background: var(--c-bg);
 }
-.player-chip.chip-fwd  { background: var(--badge-fwd-bg);  border-color: #bfdbfe; }
-.player-chip.chip-ctr  { background: var(--badge-ctr-bg);  border-color: #ddd6fe; }
-.player-chip.chip-def  { background: var(--badge-def-bg);  border-color: #a7f3d0; }
-.player-chip.chip-goal { background: var(--badge-goal-bg); border-color: #fde68a; }
+.player-chip.chip-fwd  { background: var(--badge-fwd-bg);  border-color: var(--badge-fwd-fg); }
+.player-chip.chip-ctr  { background: var(--badge-ctr-bg);  border-color: var(--badge-ctr-fg); }
+.player-chip.chip-def  { background: var(--badge-def-bg);  border-color: var(--badge-def-fg); }
+.player-chip.chip-goal { background: var(--badge-goal-bg); border-color: var(--badge-goal-fg); }
 
 .chip-number {
   font-weight: 800;
@@ -897,6 +897,61 @@ input[type="checkbox"]:checked + .pk-chip {
 .line-section.line-bench.drag-over { outline-color: var(--bench-fg); background: rgba(71,85,105,.05); }
 
 /* ============================================================
+   SETTINGS TAB
+   ============================================================ */
+.settings-content {
+  max-width: 480px;
+  margin: 2rem auto;
+  padding: 0 1.25rem;
+}
+.settings-section {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+.settings-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--c-text);
+  margin: 0 0 0.375rem;
+}
+.settings-section-desc {
+  font-size: 0.875rem;
+  color: var(--c-text-2);
+  line-height: 1.5;
+  margin: 0 0 1.25rem;
+}
+.color-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.color-row-preview {
+  min-width: 72px;
+  text-align: center;
+}
+.color-picker {
+  width: 2.5rem;
+  height: 2rem;
+  padding: 0.1rem 0.15rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  background: none;
+}
+.settings-footer {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--c-border);
+}
+
+/* ============================================================
    SHARE BANNER & READ-ONLY MODE
    ============================================================ */
 .share-banner {
@@ -920,6 +975,7 @@ input[type="checkbox"]:checked + .pk-chip {
 }
 
 /* Suppress all write controls when body has .share-mode */
+.share-mode #tabSettings                 { display: none !important; }
 .share-mode .header-actions              { display: none !important; }
 .share-mode .card-actions                { display: none !important; }
 .share-mode .col-actions                 { display: none !important; }
