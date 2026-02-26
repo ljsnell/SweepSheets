@@ -1107,9 +1107,6 @@ function init() {
   document.getElementById('csvExampleModal').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeCsvExampleModal();
   });
-  document.getElementById('importCsvBtn').addEventListener('click', () => {
-    document.getElementById('csvFileInput').click();
-  });
   document.getElementById('importOptionsClose').addEventListener('click', closeImportOptionsModal);
   document.getElementById('importOptionsCancelBtn').addEventListener('click', closeImportOptionsModal);
   document.getElementById('importOptionsConfirmBtn').addEventListener('click', () => {
