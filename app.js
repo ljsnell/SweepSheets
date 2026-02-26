@@ -434,10 +434,32 @@ function initLineDrag() {
   const linesEl = document.getElementById('linesContent');
   if (!linesEl) return;
 
-  let draggingId = null;
+  let draggingId   = null;
+  let draggingChip = null;
+
+  function clearDragState() {
+    draggingChip?.classList.remove('dragging');
+    linesEl.querySelectorAll('.line-section.drag-over')
+      .forEach(s => s.classList.remove('drag-over'));
+    draggingId   = null;
+    draggingChip = null;
+  }
+
+  // Returns the .line-section[data-line] that contains the given viewport coords.
+  function sectionAtPoint(x, y) {
+    let found = null;
+    linesEl.querySelectorAll('.line-section[data-line]').forEach(section => {
+      const rect = section.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        found = section;
+      }
+    });
+    return found;
+  }
 
   // Only chips inside the 4 line sections are drag sources (not special-unit summaries)
   linesEl.querySelectorAll('.line-section[data-line] .player-chip[data-id]').forEach(chip => {
+    // ---- Desktop drag ----
     chip.addEventListener('dragstart', e => {
       draggingId = chip.dataset.id;
       e.dataTransfer.effectAllowed = 'move';
@@ -446,12 +468,41 @@ function initLineDrag() {
       requestAnimationFrame(() => chip.classList.add('dragging'));
     });
 
-    chip.addEventListener('dragend', () => {
-      chip.classList.remove('dragging');
+    chip.addEventListener('dragend', clearDragState);
+
+    // ---- Touch / Mobile drag ----
+    chip.addEventListener('touchstart', () => {
+      draggingId   = chip.dataset.id;
+      draggingChip = chip;
+      chip.classList.add('dragging');
+    }, { passive: true });
+
+    chip.addEventListener('touchmove', e => {
+      if (!draggingId) return;
+      e.preventDefault(); // prevent page scroll while dragging a chip
+      const touch = e.touches[0];
       linesEl.querySelectorAll('.line-section.drag-over')
         .forEach(s => s.classList.remove('drag-over'));
-      draggingId = null;
-    });
+      const section = sectionAtPoint(touch.clientX, touch.clientY);
+      if (section) section.classList.add('drag-over');
+    }, { passive: false });
+
+    chip.addEventListener('touchend', e => {
+      if (!draggingId) return;
+      const touch   = e.changedTouches[0];
+      const section = sectionAtPoint(touch.clientX, touch.clientY);
+      const id      = draggingId;
+      clearDragState();
+      if (section) {
+        const targetLine = section.dataset.line;
+        const player = state.players.find(p => p.id === id);
+        if (player && player.line !== targetLine) {
+          updatePlayer(id, { line: targetLine });
+        }
+      }
+    }, { passive: true });
+
+    chip.addEventListener('touchcancel', clearDragState, { passive: true });
   });
 
   linesEl.querySelectorAll('.line-section[data-line]').forEach(section => {

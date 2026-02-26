@@ -875,6 +875,7 @@ input[type="checkbox"]:checked + .pk-chip {
    ============================================================ */
 .player-chip[draggable] {
   cursor: grab;
+  touch-action: none; /* allow JS touch handlers to handle drag on mobile */
 }
 .player-chip[draggable]:active {
   cursor: grabbing;
