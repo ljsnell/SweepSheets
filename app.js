@@ -242,7 +242,8 @@ function renderStats() {
   const all = state.players;
   document.getElementById('statTotal').textContent    = all.length;
   document.getElementById('statActive').textContent   = all.filter(p => p.status === 'Active').length;
-  document.getElementById('statForwards').textContent = all.filter(p => p.position === 'Forward' || p.position === 'Center').length;
+  document.getElementById('statForwards').textContent = all.filter(p => p.position === 'Forward').length;
+  document.getElementById('statCenters').textContent  = all.filter(p => p.position === 'Center').length;
   document.getElementById('statDefense').textContent  = all.filter(p => p.position === 'Defense').length;
   document.getElementById('statGoalies').textContent  = all.filter(p => p.position === 'Goalie').length;
 }
